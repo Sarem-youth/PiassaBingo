@@ -42,3 +42,48 @@ exports.signin = async (req, res) => {
     res.status(500).send({ message: err.message });
   }
 };
+
+exports.signup = async (req, res) => {
+  const { username, email, password, roles } = req.body;
+
+  try {
+    // Create a new user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: {
+          username: username,
+        }
+      }
+    });
+
+    if (authError) {
+      return res.status(400).send({ message: authError.message });
+    }
+
+    if (authData.user) {
+      // Add user to the public.users table
+      const { error: userError } = await supabase
+        .from('users')
+        .insert([
+          { id: authData.user.id, username: username, email: email, role: roles && roles.length > 0 ? roles[0] : 'user' },
+        ]);
+
+      if (userError) {
+        // If inserting into public.users fails, you might want to delete the user from auth.users to keep things consistent.
+        // This part is complex and depends on your desired error handling strategy.
+        // For now, we'll just log the error.
+        console.error("Error adding user to public.users:", userError.message);
+        // Optionally, you could try to delete the user from Supabase auth here
+        return res.status(500).send({ message: "Failed to create user profile." });
+      }
+
+      res.status(201).send({ message: "User was registered successfully!" });
+    } else {
+        return res.status(500).send({ message: "Something went wrong during user registration." });
+    }
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
