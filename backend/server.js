@@ -1,7 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const db = require('./models');
 
 const app = express();
 
@@ -17,8 +16,6 @@ require('./routes/credit.routes')(app);
 require('./routes/cartela.routes')(app);
 require('./routes/cartelaGroup.routes')(app);
 require('./routes/dashboard.routes')(app);
-
-db.sequelize.sync();
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
