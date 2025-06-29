@@ -19,7 +19,8 @@ import {
   MenuItem,
   OutlinedInput,
   Checkbox,
-  ListItemText
+  ListItemText,
+  Grid
 } from '@mui/material';
 import creditService from '../../services/credit.service';
 import userService from '../../services/user.service';
@@ -38,26 +39,29 @@ const SentToShop = () => {
 
   useEffect(() => {
     loadShops();
+  }, []);
+
+  useEffect(() => {
     loadReportData();
   }, [page, rowsPerPage, fromDate, toDate, selectedShops]);
 
   const loadShops = () => {
-    userService.getUsers({ role: 'shop' }).then(response => {
-      setShops(response.data);
+    userService.getUsers({ roles: ['shop'] }).then((response) => {
+      setShops(response.data.users);
     });
   };
 
   const loadReportData = () => {
     const params = {
-      page: page + 1,
+      page,
       limit: rowsPerPage,
-      from: fromDate,
-      to: toDate,
-      shops: selectedShops.join(',')
+      fromDate,
+      toDate,
+      shops: selectedShops.join(','),
     };
-    creditService.getShopCreditReport(params).then(response => {
-      setReportData(response.data.items);
-      setCount(response.data.totalItems);
+    creditService.getShopCreditReport(params).then((response) => {
+      setReportData(response.data.rows);
+      setCount(response.data.count);
     });
   };
 
@@ -71,14 +75,10 @@ const SentToShop = () => {
   };
 
   const handleTransfer = () => {
-    // Assuming senderId is available from auth context
-    const senderId = 1; // Replace with actual sender ID
-    creditService.sendCreditToShop({
-      amount: creditAmount,
-      receiverPhoneNumber,
-      senderId
-    }).then(() => {
+    creditService.sendCreditToShop({ amount: creditAmount, receiverPhone: receiverPhoneNumber }).then(() => {
       loadReportData();
+      setCreditAmount('');
+      setReceiverPhoneNumber('');
     });
   };
 
@@ -111,42 +111,54 @@ const SentToShop = () => {
         />
         <Button variant="contained" onClick={handleTransfer}>Transfer</Button>
       </Paper>
+
       <Paper sx={{ p: 2, my: 2 }}>
         <Typography variant="h6">Shop Credit Report</Typography>
-        <Box sx={{ display: 'flex', gap: 2, my: 2 }}>
-          <TextField
-            label="From Date"
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="To Date"
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-          <FormControl sx={{ m: 1, width: 300 }}>
-            <InputLabel>Shops</InputLabel>
-            <Select
-              multiple
-              value={selectedShops}
-              onChange={handleShopChange}
-              input={<OutlinedInput label="Shops" />}
-              renderValue={(selected) => selected.map(id => shops.find(s => s.id === id)?.name).join(', ')}
-            >
-              {shops.map((shop) => (
-                <MenuItem key={shop.id} value={shop.id}>
-                  <Checkbox checked={selectedShops.indexOf(shop.id) > -1} />
-                  <ListItemText primary={shop.name} />
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Button variant="contained" onClick={loadReportData}>Submit</Button>
-        </Box>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="From Date"
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="To Date"
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <FormControl fullWidth>
+              <InputLabel>Select Shops</InputLabel>
+              <Select
+                multiple
+                value={selectedShops}
+                onChange={handleShopChange}
+                renderValue={(selected) => selected.join(', ')}
+              >
+                {shops.map((shop) => (
+                  <MenuItem key={shop.id} value={shop.id}>
+                    <Checkbox checked={selectedShops.indexOf(shop.id) > -1} />
+                    <ListItemText primary={shop.username} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+        </Grid>
+
         <TableContainer>
           <Table>
             <TableHead>
@@ -155,19 +167,29 @@ const SentToShop = () => {
                 <TableCell>Shop</TableCell>
                 <TableCell>Receiver</TableCell>
                 <TableCell>Sent Credit</TableCell>
+                <TableCell>Received Cash</TableCell>
+                <TableCell>Before Deposit</TableCell>
+                <TableCell>After Deposit</TableCell>
                 <TableCell>Date</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>Details</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {reportData.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell>{row.receiver.balance}</TableCell>
-                  <TableCell>{row.receiver.name}</TableCell>
-                  <TableCell>{row.receiver.name}</TableCell>
-                  <TableCell>{row.amount}</TableCell>
-                  <TableCell>{new Date(row.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>{row.balance}</TableCell>
+                  <TableCell>{row.shop}</TableCell>
+                  <TableCell>{row.receiver}</TableCell>
+                  <TableCell>{row.sentCredit}</TableCell>
+                  <TableCell>{row.receivedCash}</TableCell>
+                  <TableCell>{row.beforeDeposit}</TableCell>
+                  <TableCell>{row.afterDeposit}</TableCell>
+                  <TableCell>{new Date(row.date).toLocaleDateString()}</TableCell>
                   <TableCell>{row.status}</TableCell>
+                  <TableCell>
+                    <Button>Details</Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

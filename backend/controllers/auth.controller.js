@@ -1,6 +1,3 @@
-const db = require("../models");
-const User = db.user;
-
 const supabase = require("../config/supabase.config.js");
 
 exports.signin = async (req, res) => {
@@ -83,6 +80,18 @@ exports.signup = async (req, res) => {
     } else {
         return res.status(500).send({ message: "Something went wrong during user registration." });
     }
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+exports.logout = async (req, res) => {
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+    res.status(200).send({ message: "Logged out successfully." });
   } catch (err) {
     res.status(500).send({ message: err.message });
   }

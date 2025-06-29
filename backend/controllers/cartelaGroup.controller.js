@@ -1,57 +1,100 @@
-const db = require("../models");
-const CartelaGroup = db.cartelaGroup;
+const supabase = require("../config/supabase.config.js");
 
-exports.getCartelaGroups = (req, res) => {
-  CartelaGroup.findAll()
-    .then(cartelaGroups => {
-      res.status(200).send(cartelaGroups);
-    })
-    .catch(err => {
-      res.status(500).send({ message: err.message });
-    });
+// Create a new cartela group
+exports.createCartelaGroup = async (req, res) => {
+  const { name, status } = req.body;
+
+  try {
+    const { data, error } = await supabase
+      .from("cartela_groups")
+      .insert([{ name, status }])
+      .select();
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(201).send(data[0]);
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
 };
 
-exports.createCartelaGroup = (req, res) => {
-  CartelaGroup.create({
-    name: req.body.name,
-    status: req.body.status
-  })
-    .then(cartelaGroup => {
-      res.status(201).send({ message: "CartelaGroup was created successfully!" });
-    })
-    .catch(err => {
-      res.status(500).send({ message: err.message });
-    });
+// Get all cartela groups
+exports.getAllCartelaGroups = async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("cartela_groups").select("*");
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send(data);
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
 };
 
-exports.updateCartelaGroup = (req, res) => {
-  CartelaGroup.update(req.body, {
-    where: { id: req.params.id }
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({ message: "CartelaGroup was updated successfully." });
-      } else {
-        res.send({ message: `Cannot update CartelaGroup with id=${req.params.id}. Maybe CartelaGroup was not found or req.body is empty!` });
-      }
-    })
-    .catch(err => {
-      res.status(500).send({ message: "Error updating CartelaGroup with id=" + req.params.id });
-    });
+// Get cartela group by ID
+exports.getCartelaGroupById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { data, error } = await supabase
+      .from("cartela_groups")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    if (data) {
+      res.status(200).send(data);
+    } else {
+      res.status(404).send({ message: "Cartela group not found." });
+    }
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
 };
 
-exports.deleteCartelaGroup = (req, res) => {
-  CartelaGroup.destroy({
-    where: { id: req.params.id }
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({ message: "CartelaGroup was deleted successfully!" });
-      } else {
-        res.send({ message: `Cannot delete CartelaGroup with id=${req.params.id}. Maybe CartelaGroup was not found!` });
-      }
-    })
-    .catch(err => {
-      res.status(500).send({ message: "Could not delete CartelaGroup with id=" + req.params.id });
-    });
+// Update cartela group
+exports.updateCartelaGroup = async (req, res) => {
+  const { id } = req.params;
+  const { name, status } = req.body;
+
+  try {
+    const { data, error } = await supabase
+      .from("cartela_groups")
+      .update({ name, status })
+      .eq("id", id)
+      .select();
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send(data[0]);
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// Delete cartela group
+exports.deleteCartelaGroup = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabase.from("cartela_groups").delete().eq("id", id);
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send({ message: "Cartela group was deleted successfully." });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
 };

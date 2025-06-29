@@ -25,6 +25,9 @@ const AdminLayout = () => {
             <ListItem button component={Link} to="/admin/super-agents">
               <ListItemText primary="Super Agents" />
             </ListItem>
+            <ListItem button component={Link} to="/admin/shops">
+              <ListItemText primary="Shops" />
+            </ListItem>
             <ListItem button component={Link} to="/admin/sent-to-agent">
               <ListItemText primary="Sent To Agent" />
             </ListItem>
@@ -36,6 +39,18 @@ const AdminLayout = () => {
             </ListItem>
             <ListItem button component={Link} to="/admin/recharge-balance">
               <ListItemText primary="Recharge Balance" />
+            </ListItem>
+            <ListItem button component={Link} to="/admin/game-management">
+              <ListItemText primary="Game Management" />
+            </ListItem>
+            <ListItem button component={Link} to="/admin/cartela-management">
+              <ListItemText primary="Cartela Management" />
+            </ListItem>
+            <ListItem button component={Link} to="/admin/new-page-1">
+              <ListItemText primary="New Page 1" />
+            </ListItem>
+            <ListItem button component={Link} to="/admin/new-page-2">
+              <ListItemText primary="New Page 2" />
             </ListItem>
           </List>
         </Box>

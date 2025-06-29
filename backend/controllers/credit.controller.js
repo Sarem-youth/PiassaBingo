@@ -1,281 +1,181 @@
-const db = require("../models");
-const Credit = db.credit;
-const User = db.user;
-const { Op } = require("sequelize");
-const sequelize = db.sequelize;
+const supabase = require("../config/supabase.config.js");
 
-exports.getCredits = (req, res) => {
-  Credit.findAll()
-    .then(credits => {
-      res.status(200).send(credits);
-    })
-    .catch(err => {
-      res.status(500).send({ message: err.message });
-    });
-};
-
-exports.createCredit = (req, res) => {
-  Credit.create({
-    amount: req.body.amount,
-    senderId: req.body.senderId,
-    receiverId: req.body.receiverId,
-    status: req.body.status
-  })
-    .then(credit => {
-      res.status(201).send({ message: "Credit was created successfully!" });
-    })
-    .catch(err => {
-      res.status(500).send({ message: err.message });
-    });
-};
-
+// Transfer credit from Admin to Super Agent
 exports.sendCreditToAgent = async (req, res) => {
-  const { amount, receiverId, senderId } = req.body;
-  const t = await sequelize.transaction();
+  const { sender_id, receiver_id, amount } = req.body;
+
   try {
-    const sender = await User.findByPk(senderId, { transaction: t });
-    const receiver = await User.findByPk(receiverId, { transaction: t });
+    const { error } = await supabase.rpc('transfer_credit', {
+      sender_id_in: sender_id,
+      receiver_id_in: receiver_id,
+      amount_in: amount,
+      type_in: 'admin-to-agent'
+    });
 
-    if (!sender || !receiver) {
-      await t.rollback();
-      return res.status(404).send({ message: "User not found." });
+    if (error) {
+      return res.status(400).send({ message: error.message });
     }
 
-    if (receiver.role !== 'agent') {
-        await t.rollback();
-        return res.status(400).send({ message: "Receiver is not an agent." });
-    }
-
-    if (sender.balance < amount) {
-      await t.rollback();
-      return res.status(400).send({ message: "Insufficient balance." });
-    }
-
-    const senderNewBalance = parseFloat(sender.balance) - parseFloat(amount);
-    const receiverNewBalance = parseFloat(receiver.balance) + parseFloat(amount);
-
-    await User.update({ balance: senderNewBalance }, { where: { id: senderId }, transaction: t });
-    await User.update({ balance: receiverNewBalance }, { where: { id: receiverId }, transaction: t });
-
-    await Credit.create({
-      amount,
-      senderId,
-      receiverId,
-      status: 'completed'
-    }, { transaction: t });
-
-    await t.commit();
-    res.status(200).send({ message: "Credit sent successfully." });
-
+    res.status(200).send({ message: "Credit sent to agent successfully." });
   } catch (err) {
-    await t.rollback();
     res.status(500).send({ message: err.message });
   }
 };
 
+// Transfer credit from Super Agent to Shop
 exports.sendCreditToShop = async (req, res) => {
-  const { amount, receiverId, senderId } = req.body;
-  const t = await sequelize.transaction();
+  const { sender_id, receiver_id, amount } = req.body;
+
   try {
-    const sender = await User.findByPk(senderId, { transaction: t });
-    const receiver = await User.findByPk(receiverId, { transaction: t });
+    const { error } = await supabase.rpc('transfer_credit', {
+      sender_id_in: sender_id,
+      receiver_id_in: receiver_id,
+      amount_in: amount,
+      type_in: 'agent-to-shop'
+    });
 
-    if (!sender || !receiver) {
-      await t.rollback();
-      return res.status(404).send({ message: "User not found." });
+    if (error) {
+      return res.status(400).send({ message: error.message });
     }
 
-    if (receiver.role !== 'shop') {
-        await t.rollback();
-        return res.status(400).send({ message: "Receiver is not a shop." });
-    }
-
-    if (sender.balance < amount) {
-      await t.rollback();
-      return res.status(400).send({ message: "Insufficient balance." });
-    }
-
-    const senderNewBalance = parseFloat(sender.balance) - parseFloat(amount);
-    const receiverNewBalance = parseFloat(receiver.balance) + parseFloat(amount);
-
-    await User.update({ balance: senderNewBalance }, { where: { id: senderId }, transaction: t });
-    await User.update({ balance: receiverNewBalance }, { where: { id: receiverId }, transaction: t });
-
-    await Credit.create({
-      amount,
-      senderId,
-      receiverId,
-      status: 'completed'
-    }, { transaction: t });
-
-    await t.commit();
-    res.status(200).send({ message: "Credit sent successfully." });
-
+    res.status(200).send({ message: "Credit sent to shop successfully." });
   } catch (err) {
-    await t.rollback();
     res.status(500).send({ message: err.message });
   }
 };
 
+// Get credit report for agents
 exports.getAgentCreditReport = async (req, res) => {
-  const { from, to, agents } = req.query;
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-  const offset = (page - 1) * limit;
-
-  const whereClause = {
-    '$receiver.role$': 'agent'
-  };
-
-  if (from && to) {
-    whereClause.createdAt = {
-      [Op.between]: [new Date(from), new Date(to)]
-    };
-  }
-
-  if (agents) {
-    whereClause.receiverId = {
-      [Op.in]: agents.split(',')
-    };
-  }
+  const { page = 0, limit = 10, search = '' } = req.query;
+  const offset = page * limit;
 
   try {
-    const { count, rows } = await Credit.findAndCountAll({
-      where: whereClause,
-      include: [
-        { model: User, as: 'sender', attributes: ['id', 'name', 'balance'] },
-        { model: User, as: 'receiver', attributes: ['id', 'name', 'balance'] }
-      ],
-      limit,
-      offset,
-      order: [['createdAt', 'DESC']]
-    });
+    let query = supabase
+      .from("credits")
+      .select(`
+        *,
+        sender:sender_id ( username ),
+        receiver:receiver_id ( username )
+      `, { count: "exact" })
+      .eq('type', 'admin-to-agent');
 
-    res.status(200).send({
-      totalItems: count,
-      items: rows,
-      totalPages: Math.ceil(count / limit),
-      currentPage: page
-    });
-  } catch (err) {
-    res.status(500).send({ message: err.message });
-  }
-};
-
-exports.getShopCreditReport = async (req, res) => {
-  const { from, to, shops } = req.query;
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-  const offset = (page - 1) * limit;
-
-  const whereClause = {
-    '$receiver.role$': 'shop'
-  };
-
-  if (from && to) {
-    whereClause.createdAt = {
-      [Op.between]: [new Date(from), new Date(to)]
-    };
-  }
-
-  if (shops) {
-    whereClause.receiverId = {
-      [Op.in]: shops.split(',')
-    };
-  }
-
-  try {
-    const { count, rows } = await Credit.findAndCountAll({
-      where: whereClause,
-      include: [
-        { model: User, as: 'sender', attributes: ['id', 'name', 'balance'] },
-        { model: User, as: 'receiver', attributes: ['id', 'name', 'balance'] }
-      ],
-      limit,
-      offset,
-      order: [['createdAt', 'DESC']]
-    });
-
-    res.status(200).send({
-      totalItems: count,
-      items: rows,
-      totalPages: Math.ceil(count / limit),
-      currentPage: page
-    });
-  } catch (err) {
-    res.status(500).send({ message: err.message });
-  }
-};
-
-exports.getReceivedCreditReport = async (req, res) => {
-  const { from, to } = req.query;
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-  const offset = (page - 1) * limit;
-
-  // Assuming the user ID is available in req.userId from a middleware
-  const receiverId = req.userId; 
-
-  const whereClause = {
-    receiverId
-  };
-
-  if (from && to) {
-    whereClause.createdAt = {
-      [Op.between]: [new Date(from), new Date(to)]
-    };
-  }
-
-  try {
-    const { count, rows } = await Credit.findAndCountAll({
-      where: whereClause,
-      include: [
-        { model: User, as: 'sender', attributes: ['id', 'name'] },
-        { model: User, as: 'receiver', attributes: ['id', 'name'] }
-      ],
-      limit,
-      offset,
-      order: [['createdAt', 'DESC']]
-    });
-
-    res.status(200).send({
-      totalItems: count,
-      items: rows,
-      totalPages: Math.ceil(count / limit),
-      currentPage: page
-    });
-  } catch (err) {
-    res.status(500).send({ message: err.message });
-  }
-};
-
-exports.rechargeBalance = async (req, res) => {
-  const { amount, userId } = req.body; // userId is the admin's ID
-  const t = await sequelize.transaction();
-  try {
-    const user = await User.findByPk(userId, { transaction: t });
-
-    if (!user) {
-      await t.rollback();
-      return res.status(404).send({ message: "User not found." });
+    if (search) {
+      query = query.or(`sender.username.ilike.%${search}%,receiver.username.ilike.%${search}%`);
     }
 
-    const newBalance = parseFloat(user.balance) + parseFloat(amount);
+    const { data, error, count } = await query.range(offset, offset + limit - 1);
 
-    await User.update({ balance: newBalance }, { where: { id: userId }, transaction: t });
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
 
-    await Credit.create({
-      amount,
-      senderId: null, // Or a system user ID
-      receiverId: userId,
-      status: 'recharge'
-    }, { transaction: t });
-
-    await t.commit();
-    res.status(200).send({ message: "Balance recharged successfully." });
-
+    res.status(200).send({ credits: data, count });
   } catch (err) {
-    await t.rollback();
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// Get credit report for shops
+exports.getShopCreditReport = async (req, res) => {
+  const { page = 0, limit = 10, search = '' } = req.query;
+  const offset = page * limit;
+
+  try {
+    let query = supabase
+      .from("credits")
+      .select(`
+        *,
+        sender:sender_id ( username ),
+        receiver:receiver_id ( username )
+      `, { count: "exact" })
+      .eq('type', 'agent-to-shop');
+
+    if (search) {
+      query = query.or(`sender.username.ilike.%${search}%,receiver.username.ilike.%${search}%`);
+    }
+
+    const { data, error, count } = await query.range(offset, offset + limit - 1);
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send({ credits: data, count });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// Get received credit report for a user
+exports.getReceivedCreditReport = async (req, res) => {
+  const { userId, page = 0, limit = 10, search = '' } = req.query;
+  const offset = page * limit;
+
+  try {
+    let query = supabase
+      .from("credits")
+      .select(`
+        *,
+        sender:sender_id ( username )
+      `, { count: "exact" })
+      .eq('receiver_id', userId);
+
+    if (search) {
+      query = query.ilike('sender.username', `%${search}%`);
+    }
+
+    const { data, error, count } = await query.range(offset, offset + limit - 1);
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send({ credits: data, count });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// Recharge balance for admin
+exports.rechargeBalance = async (req, res) => {
+  const { receiver_id, amount } = req.body; // Admin is the receiver
+
+  try {
+    const { data: user, error: fetchError } = await supabase
+      .from('users')
+      .select('balance')
+      .eq('id', receiver_id)
+      .single();
+
+    if (fetchError) {
+      return res.status(400).send({ message: "User not found." });
+    }
+
+    const newBalance = user.balance + amount;
+
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ balance: newBalance })
+      .eq('id', receiver_id);
+
+    if (updateError) {
+      return res.status(400).send({ message: updateError.message });
+    }
+
+    const { error: creditError } = await supabase
+      .from('credits')
+      .insert([{
+        amount,
+        type: 'recharge',
+        receiver_id,
+      }]);
+
+    if (creditError) {
+      console.error("Error creating credit record for recharge:", creditError.message);
+    }
+
+    res.status(200).send({ message: "Balance recharged successfully." });
+  } catch (err) {
     res.status(500).send({ message: err.message });
   }
 };

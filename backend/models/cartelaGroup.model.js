@@ -1,6 +1,6 @@
 
 module.exports = {
-  table: 'roles',
+  table: 'cartela_groups',
   columns: {
     id: {
       type: 'INTEGER',
@@ -11,6 +11,11 @@ module.exports = {
       type: 'STRING',
       unique: true,
       allowNull: false,
+    },
+    status: {
+      type: 'ENUM',
+      values: ['active', 'inactive'],
+      defaultValue: 'active',
     },
   },
 };

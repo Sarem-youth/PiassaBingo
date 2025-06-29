@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import userService from '../../services/user.service';
 import {
   Container,
   Paper,
   Typography,
+  TextField,
   Button,
   Table,
   TableBody,
@@ -11,40 +13,34 @@ import {
   TableHead,
   TableRow,
   TablePagination,
-  Box,
-  TextField,
-  IconButton,
   Dialog,
   DialogActions,
   DialogContent,
-  DialogContentText,
-  DialogTitle
+  DialogTitle,
 } from '@mui/material';
-import { Edit, Delete, Lock, LockOpen } from '@mui/icons-material';
-import userService from '../../services/user.service';
 
-const SuperAgents = () => {
-  const [agents, setAgents] = useState([]);
+const Shops = () => {
+  const [shops, setShops] = useState([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [count, setCount] = useState(0);
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState(null);
+  const [selectedShop, setSelectedShop] = useState(null);
 
   useEffect(() => {
-    loadAgents();
+    loadShops();
   }, [page, rowsPerPage, search]);
 
-  const loadAgents = () => {
+  const loadShops = () => {
     const params = {
       page,
       limit: rowsPerPage,
       search,
-      roles: ['super agent'],
+      roles: ['shop'],
     };
     userService.getUsers(params).then((response) => {
-      setAgents(response.data.users);
+      setShops(response.data.users);
       setCount(response.data.count);
     });
   };
@@ -62,32 +58,32 @@ const SuperAgents = () => {
     setPage(0);
   };
 
-  const handleClickOpen = (agent) => {
-    setSelectedAgent(agent);
+  const handleClickOpen = (shop) => {
+    setSelectedShop(shop);
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
-    setSelectedAgent(null);
+    setSelectedShop(null);
   };
 
   const handleLock = (id) => {
     userService.updateUser(id, { status: 'locked' }).then(() => {
-      loadAgents();
+      loadShops();
     });
   };
 
   const handleUnlock = (id) => {
     userService.updateUser(id, { status: 'active' }).then(() => {
-      loadAgents();
+      loadShops();
     });
   };
 
   return (
     <Container>
       <Paper sx={{ p: 2, my: 2 }}>
-        <Typography variant="h6">Super Agents</Typography>
+        <Typography variant="h6">Shops</Typography>
         <TextField
           label="Search"
           value={search}
@@ -95,14 +91,16 @@ const SuperAgents = () => {
           fullWidth
           margin="normal"
         />
-        <Button variant="contained" onClick={() => handleClickOpen(null)}>+ Add New Agent</Button>
+        <Button variant="contained" onClick={() => handleClickOpen(null)}>+ Add New Shop</Button>
 
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>Name</TableCell>
-                <TableCell>Username</TableCell>
+                <TableCell>Online</TableCell>
+                <TableCell>Agent</TableCell>
+                <TableCell>Cut</TableCell>
                 <TableCell>Balance</TableCell>
                 <TableCell>%</TableCell>
                 <TableCell>Phone</TableCell>
@@ -113,22 +111,24 @@ const SuperAgents = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {agents.map((agent) => (
-                <TableRow key={agent.id}>
-                  <TableCell>{agent.name}</TableCell>
-                  <TableCell>{agent.username}</TableCell>
-                  <TableCell>{agent.balance}</TableCell>
-                  <TableCell>{agent.commission}</TableCell>
-                  <TableCell>{agent.phone}</TableCell>
-                  <TableCell>{agent.status}</TableCell>
+              {shops.map((shop) => (
+                <TableRow key={shop.id}>
+                  <TableCell>{shop.name}</TableCell>
+                  <TableCell>{shop.online ? 'Yes' : 'No'}</TableCell>
+                  <TableCell>{shop.agent?.name}</TableCell>
+                  <TableCell>{shop.cut}</TableCell>
+                  <TableCell>{shop.balance}</TableCell>
+                  <TableCell>{shop.commission}</TableCell>
+                  <TableCell>{shop.phone}</TableCell>
+                  <TableCell>{shop.status}</TableCell>
                   <TableCell>
-                    <Button onClick={() => handleClickOpen(agent)}>Change</Button>
+                    <Button onClick={() => handleClickOpen(shop)}>Change</Button>
                   </TableCell>
                   <TableCell>
-                    {agent.status === 'locked' ? (
-                      <Button onClick={() => handleUnlock(agent.id)}>Unlock</Button>
+                    {shop.locked ? (
+                      <Button onClick={() => handleUnlock(shop.id)}>Unlock</Button>
                     ) : (
-                      <Button onClick={() => handleLock(agent.id)}>Lock</Button>
+                      <Button onClick={() => handleLock(shop.id)}>Lock</Button>
                     )}
                   </TableCell>
                   <TableCell>
@@ -148,34 +148,41 @@ const SuperAgents = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Paper>
-      <AgentDialog open={open} onClose={handleClose} agent={selectedAgent} refresh={loadAgents} />
+      <ShopDialog open={open} onClose={handleClose} shop={selectedShop} refresh={loadShops} />
     </Container>
   );
 };
 
-const AgentDialog = ({ open, onClose, agent, refresh }) => {
+const ShopDialog = ({ open, onClose, shop, refresh }) => {
   const [formData, setFormData] = useState({});
 
   useEffect(() => {
-    if (agent) {
-      setFormData(agent);
+    if (shop) {
+      setFormData(shop);
     } else {
-      setFormData({});
+      setFormData({
+        name: '',
+        username: '',
+        phone: '',
+        commission: '',
+        password: ''
+      });
     }
-  }, [agent]);
+  }, [shop]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = () => {
-    if (agent) {
-      userService.updateUser(agent.id, formData).then(() => {
+    const shopData = { ...formData, roles: ['shop'] };
+    if (shop) {
+      userService.updateUser(shop.id, shopData).then(() => {
         refresh();
         onClose();
       });
     } else {
-      userService.createUser(formData).then(() => {
+      userService.createUser(shopData).then(() => {
         refresh();
         onClose();
       });
@@ -184,12 +191,15 @@ const AgentDialog = ({ open, onClose, agent, refresh }) => {
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogTitle>{agent ? 'Edit Agent' : 'Add Agent'}</DialogTitle>
+      <DialogTitle>{shop ? 'Edit Shop' : 'Add Shop'}</DialogTitle>
       <DialogContent>
         <TextField name="name" label="Name" value={formData.name || ''} onChange={handleChange} fullWidth margin="normal" />
         <TextField name="username" label="Username" value={formData.username || ''} onChange={handleChange} fullWidth margin="normal" />
         <TextField name="phone" label="Phone" value={formData.phone || ''} onChange={handleChange} fullWidth margin="normal" />
         <TextField name="commission" label="Commission" value={formData.commission || ''} onChange={handleChange} fullWidth margin="normal" />
+        {!shop && (
+            <TextField name="password" label="Password" type="password" value={formData.password || ''} onChange={handleChange} fullWidth margin="normal" />
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
@@ -199,4 +209,4 @@ const AgentDialog = ({ open, onClose, agent, refresh }) => {
   );
 };
 
-export default SuperAgents;
+export default Shops;

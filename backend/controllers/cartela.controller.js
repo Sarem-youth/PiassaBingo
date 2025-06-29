@@ -1,57 +1,120 @@
-const db = require("../models");
-const Cartela = db.cartela;
+const supabase = require("../config/supabase.config.js");
 
-exports.getCartelas = (req, res) => {
-  Cartela.findAll()
-    .then(cartelas => {
-      res.status(200).send(cartelas);
-    })
-    .catch(err => {
-      res.status(500).send({ message: err.message });
-    });
+// Create a new cartela
+exports.createCartela = async (req, res) => {
+  const { cartela_number, status, cartela_group_id } = req.body;
+
+  try {
+    const { data, error } = await supabase
+      .from("cartelas")
+      .insert([{ cartela_number, status, cartela_group_id }])
+      .select();
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(201).send(data[0]);
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
 };
 
-exports.createCartela = (req, res) => {
-  Cartela.create({
-    numbers: req.body.numbers,
-    cartelaGroupId: req.body.cartelaGroupId
-  })
-    .then(cartela => {
-      res.status(201).send({ message: "Cartela was created successfully!" });
-    })
-    .catch(err => {
-      res.status(500).send({ message: err.message });
-    });
+// Get all cartelas
+exports.getAllCartelas = async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("cartelas").select("*");
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send(data);
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
 };
 
-exports.updateCartela = (req, res) => {
-  Cartela.update(req.body, {
-    where: { id: req.params.id }
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({ message: "Cartela was updated successfully." });
-      } else {
-        res.send({ message: `Cannot update Cartela with id=${req.params.id}. Maybe Cartela was not found or req.body is empty!` });
-      }
-    })
-    .catch(err => {
-      res.status(500).send({ message: "Error updating Cartela with id=" + req.params.id });
-    });
+// Get cartela by ID
+exports.getCartelaById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { data, error } = await supabase
+      .from("cartelas")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    if (data) {
+      res.status(200).send(data);
+    } else {
+      res.status(404).send({ message: "Cartela not found." });
+    }
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
 };
 
-exports.deleteCartela = (req, res) => {
-  Cartela.destroy({
-    where: { id: req.params.id }
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({ message: "Cartela was deleted successfully!" });
-      } else {
-        res.send({ message: `Cannot delete Cartela with id=${req.params.id}. Maybe Cartela was not found!` });
-      }
-    })
-    .catch(err => {
-      res.status(500).send({ message: "Could not delete Cartela with id=" + req.params.id });
-    });
+// Update cartela
+exports.updateCartela = async (req, res) => {
+  const { id } = req.params;
+  const { cartela_number, status, cartela_group_id } = req.body;
+
+  try {
+    const { data, error } = await supabase
+      .from("cartelas")
+      .update({ cartela_number, status, cartela_group_id })
+      .eq("id", id)
+      .select();
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send(data[0]);
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// Delete cartela
+exports.deleteCartela = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabase.from("cartelas").delete().eq("id", id);
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send({ message: "Cartela was deleted successfully." });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// Bulk create cartelas
+exports.bulkCreateCartelas = async (req, res) => {
+  const { cartelas } = req.body; // expecting an array of cartelas
+
+  try {
+    const { data, error } = await supabase
+      .from("cartelas")
+      .insert(cartelas)
+      .select();
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(201).send(data);
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
 };

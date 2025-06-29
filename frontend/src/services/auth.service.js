@@ -1,33 +1,41 @@
-import { supabase } from '../supabase';
+import axios from "axios";
 
-const login = async (username, password) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: username,
-    password: password,
+const API_URL = "http://localhost:8080/api/auth/";
+
+const signup = (username, email, password, roles) => {
+  return axios.post(API_URL + "signup", {
+    username,
+    email,
+    password,
+    roles,
   });
+};
 
-  if (error) {
-    throw new Error(error.message);
-  }
+const login = (username, password) => {
+  return axios
+    .post(API_URL + "signin", {
+      username,
+      password,
+    })
+    .then((response) => {
+      if (response.data.accessToken) {
+        localStorage.setItem("user", JSON.stringify(response.data));
+      }
 
-  if (data.user) {
-    localStorage.setItem("user", JSON.stringify(data));
-  }
-
-  return data;
+      return response.data;
+    });
 };
 
 const logout = () => {
-  supabase.auth.signOut();
   localStorage.removeItem("user");
 };
 
 const getCurrentUser = () => {
-  const user = localStorage.getItem("user");
-  return user ? JSON.parse(user) : null;
+  return JSON.parse(localStorage.getItem("user"));
 };
 
 const authService = {
+  signup,
   login,
   logout,
   getCurrentUser,

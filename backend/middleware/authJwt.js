@@ -12,16 +12,15 @@ verifyToken = (req, res, next) => {
     });
   }
 
-  jwt.verify(token, config.secret,
-    (err, decoded) => {
-      if (err) {
-        return res.status(401).send({
-          message: "Unauthorized!",
-        });
-      }
-      req.userId = decoded.id;
-      next();
-    });
+  jwt.verify(token, config.secret, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({
+        message: "Unauthorized!"
+      });
+    }
+    req.userId = decoded.id;
+    next();
+  });
 };
 
 isAdmin = (req, res, next) => {
@@ -42,40 +41,35 @@ isAdmin = (req, res, next) => {
   });
 };
 
-isModerator = (req, res, next) => {
+isSuperAgent = (req, res, next) => {
   User.findByPk(req.userId).then(user => {
     user.getRoles().then(roles => {
       for (let i = 0; i < roles.length; i++) {
-        if (roles[i].name === "moderator") {
+        if (roles[i].name === "superagent") {
           next();
           return;
         }
       }
 
       res.status(403).send({
-        message: "Require Moderator Role!"
+        message: "Require Super Agent Role!"
       });
     });
   });
 };
 
-isModeratorOrAdmin = (req, res, next) => {
+isShop = (req, res, next) => {
   User.findByPk(req.userId).then(user => {
     user.getRoles().then(roles => {
       for (let i = 0; i < roles.length; i++) {
-        if (roles[i].name === "moderator") {
-          next();
-          return;
-        }
-
-        if (roles[i].name === "admin") {
+        if (roles[i].name === "shop") {
           next();
           return;
         }
       }
 
       res.status(403).send({
-        message: "Require Moderator or Admin Role!"
+        message: "Require Shop Role!"
       });
     });
   });
@@ -84,7 +78,7 @@ isModeratorOrAdmin = (req, res, next) => {
 const authJwt = {
   verifyToken: verifyToken,
   isAdmin: isAdmin,
-  isModerator: isModerator,
-  isModeratorOrAdmin: isModeratorOrAdmin
+  isSuperAgent: isSuperAgent,
+  isShop: isShop
 };
 module.exports = authJwt;

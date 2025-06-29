@@ -1,39 +1,30 @@
-import { supabase } from '../supabase';
+import axios from 'axios';
+import authHeader from './auth-header';
 
-const sendCreditToAgent = async (data) => {
-  const { data: result, error } = await supabase.from('credits').insert([data]);
-  if (error) throw new Error(error.message);
-  return result;
+const API_URL = 'http://localhost:8080/api/credits';
+
+const sendCreditToAgent = (data) => {
+  return axios.post(`${API_URL}/sent-to-agent`, data, { headers: authHeader() });
 };
 
-const getAgentCreditReport = async (params) => {
-  const { data, error } = await supabase.from('credits').select('*').match(params);
-  if (error) throw new Error(error.message);
-  return data;
+const getAgentCreditReport = (params) => {
+  return axios.get(`${API_URL}/sent-to-agent`, { headers: authHeader(), params });
 };
 
-const sendCreditToShop = async (data) => {
-  const { data: result, error } = await supabase.from('credits').insert([data]);
-  if (error) throw new Error(error.message);
-  return result;
+const sendCreditToShop = (data) => {
+  return axios.post(`${API_URL}/sent-to-shop`, data, { headers: authHeader() });
 };
 
-const getShopCreditReport = async (params) => {
-  const { data, error } = await supabase.from('credits').select('*').match(params);
-  if (error) throw new Error(error.message);
-  return data;
+const getShopCreditReport = (params) => {
+  return axios.get(`${API_URL}/sent-to-shop`, { headers: authHeader(), params });
 };
 
-const getReceivedCreditReport = async (params) => {
-  const { data, error } = await supabase.from('credits').select('*').match(params);
-  if (error) throw new Error(error.message);
-  return data;
+const getReceivedCreditReport = (params) => {
+  return axios.get(`${API_URL}/received`, { headers: authHeader(), params });
 };
 
-const rechargeBalance = async (data) => {
-  const { data: result, error } = await supabase.from('credits').insert([data]);
-  if (error) throw new Error(error.message);
-  return result;
+const rechargeBalance = (data) => {
+  return axios.post(`${API_URL}/recharge`, data, { headers: authHeader() });
 };
 
 export default {

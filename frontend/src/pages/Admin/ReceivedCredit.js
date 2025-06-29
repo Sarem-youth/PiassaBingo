@@ -12,7 +12,8 @@ import {
   TablePagination,
   Box,
   TextField,
-  Button
+  Button,
+  Grid
 } from '@mui/material';
 import creditService from '../../services/credit.service';
 
@@ -30,14 +31,14 @@ const ReceivedCredit = () => {
 
   const loadReportData = () => {
     const params = {
-      page: page + 1,
+      page,
       limit: rowsPerPage,
-      from: fromDate,
-      to: toDate
+      fromDate,
+      toDate,
     };
-    creditService.getReceivedCreditReport(params).then(response => {
-      setReportData(response.data.items);
-      setCount(response.data.totalItems);
+    creditService.getReceivedCreditReport(params).then((response) => {
+      setReportData(response.data.rows);
+      setCount(response.data.count);
     });
   };
 
@@ -54,23 +55,33 @@ const ReceivedCredit = () => {
     <Container>
       <Paper sx={{ p: 2, my: 2 }}>
         <Typography variant="h6">Received Credit Report</Typography>
-        <Box sx={{ display: 'flex', gap: 2, my: 2 }}>
-          <TextField
-            label="From Date"
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="To Date"
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-          <Button variant="contained" onClick={loadReportData}>Submit</Button>
-        </Box>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="From Date"
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="To Date"
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              fullWidth
+            />
+          </Grid>
+        </Grid>
+
         <TableContainer>
           <Table>
             <TableHead>
@@ -84,10 +95,10 @@ const ReceivedCredit = () => {
             <TableBody>
               {reportData.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell>{row.sender ? row.sender.name : 'System'}</TableCell>
-                  <TableCell>{row.receiver.name}</TableCell>
+                  <TableCell>{row.sender}</TableCell>
+                  <TableCell>{row.receiver}</TableCell>
                   <TableCell>{row.amount}</TableCell>
-                  <TableCell>{new Date(row.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(row.date).toLocaleDateString()}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
