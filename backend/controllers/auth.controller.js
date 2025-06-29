@@ -1,44 +1,44 @@
 const db = require("../models");
 const User = db.user;
 
-var jwt = require("jsonwebtoken");
-var bcrypt = require("bcryptjs");
+const supabase = require("../config/supabase.config.js");
 
-exports.signin = (req, res) => {
-  User.findOne({
-    where: {
-      username: req.body.username
+exports.signin = async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    // Supabase uses email to sign in, so we'll use the provided username as the email.
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: username,
+      password: password,
+    });
+
+    if (error) {
+      return res.status(401).send({ message: error.message });
     }
-  })
-    .then(user => {
-      if (!user) {
-        return res.status(404).send({ message: "User Not found." });
+
+    if (data && data.user) {
+      // Fetch user details from the public.users table to get the role
+      const { data: userDetails, error: userError } = await supabase
+        .from('users')
+        .select('id, username, role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (userError) {
+        return res.status(500).send({ message: "Error fetching user details: " + userError.message });
       }
-
-      var passwordIsValid = bcrypt.compareSync(
-        req.body.password,
-        user.password
-      );
-
-      if (!passwordIsValid) {
-        return res.status(401).send({
-          accessToken: null,
-          message: "Invalid Password!"
-        });
-      }
-
-      var token = jwt.sign({ id: user.id }, "piassa-bingo-secret-key", {
-        expiresIn: 86400 // 24 hours
-      });
 
       res.status(200).send({
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        accessToken: token
+        id: userDetails.id,
+        username: userDetails.username,
+        role: userDetails.role,
+        accessToken: data.session.access_token,
       });
-    })
-    .catch(err => {
-      res.status(500).send({ message: err.message });
-    });
+    } else {
+        return res.status(404).send({ message: "User not found." });
+    }
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
 };

@@ -8,20 +8,32 @@ import SentToAgent from './pages/Admin/SentToAgent';
 import SentToShop from './pages/Admin/SentToShop';
 import ReceivedCredit from './pages/Admin/ReceivedCredit';
 import RechargeBalance from './pages/Admin/RechargeBalance';
+import SuperAgents from './pages/Admin/SuperAgents';
+import AdminLayout from './components/AdminLayout';
+import CashierLayout from './components/CashierLayout';
+import HomePage from './pages/HomePage';
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<CashierLogin />} />
         <Route path="/cashier/login" element={<CashierLogin />} />
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/cashier/dashboard" element={<CashierDashboard />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/sent-to-agent" element={<SentToAgent />} />
-        <Route path="/admin/sent-to-shop" element={<SentToShop />} />
-        <Route path="/admin/received-credit" element={<ReceivedCredit />} />
-        <Route path="/admin/recharge-balance" element={<RechargeBalance />} />
+        
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="super-agents" element={<SuperAgents />} />
+          <Route path="sent-to-agent" element={<SentToAgent />} />
+          <Route path="sent-to-shop" element={<SentToShop />} />
+          <Route path="received-credit" element={<ReceivedCredit />} />
+          <Route path="recharge-balance" element={<RechargeBalance />} />
+        </Route>
+
+        <Route path="/cashier" element={<CashierLayout />}>
+          <Route path="dashboard" element={<CashierDashboard />} />
+        </Route>
+
+        <Route path="/" element={<HomePage />} />
       </Routes>
     </Router>
   );

@@ -1,29 +1,39 @@
-import axios from 'axios';
+import { supabase } from '../supabase';
 
-const API_URL = 'http://localhost:8080/api/credits';
-
-const sendCreditToAgent = (data) => {
-  return axios.post(`${API_URL}/agent`, data);
+const sendCreditToAgent = async (data) => {
+  const { data: result, error } = await supabase.from('credits').insert([data]);
+  if (error) throw new Error(error.message);
+  return result;
 };
 
-const getAgentCreditReport = (params) => {
-  return axios.get(`${API_URL}/agent`, { params });
+const getAgentCreditReport = async (params) => {
+  const { data, error } = await supabase.from('credits').select('*').match(params);
+  if (error) throw new Error(error.message);
+  return data;
 };
 
-const sendCreditToShop = (data) => {
-  return axios.post(`${API_URL}/shop`, data);
+const sendCreditToShop = async (data) => {
+  const { data: result, error } = await supabase.from('credits').insert([data]);
+  if (error) throw new Error(error.message);
+  return result;
 };
 
-const getShopCreditReport = (params) => {
-  return axios.get(`${API_URL}/shop`, { params });
+const getShopCreditReport = async (params) => {
+  const { data, error } = await supabase.from('credits').select('*').match(params);
+  if (error) throw new Error(error.message);
+  return data;
 };
 
-const getReceivedCreditReport = (params) => {
-  return axios.get(`${API_URL}/received`, { params });
+const getReceivedCreditReport = async (params) => {
+  const { data, error } = await supabase.from('credits').select('*').match(params);
+  if (error) throw new Error(error.message);
+  return data;
 };
 
-const rechargeBalance = (data) => {
-  return axios.post(`${API_URL}/recharge`, data);
+const rechargeBalance = async (data) => {
+  const { data: result, error } = await supabase.from('credits').insert([data]);
+  if (error) throw new Error(error.message);
+  return result;
 };
 
 export default {
