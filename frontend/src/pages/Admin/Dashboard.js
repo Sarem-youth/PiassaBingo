@@ -3,7 +3,7 @@ import dashboardService from '../../services/dashboard.service';
 import { Container, Paper, Typography, Grid, Select, MenuItem, Button, FormControl, InputLabel } from '@mui/material';
 
 const AdminDashboard = () => {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState({ sales: {}, distribution: [] });
   const [agents, setAgents] = useState([]);
   const [shops, setShops] = useState([]);
   const [filters, setFilters] = useState({
@@ -105,19 +105,31 @@ const AdminDashboard = () => {
             <Button variant="contained" onClick={handleSubmit}>Submit</Button>
           </Grid>
         </Grid>
-        {data && (
-          <Grid container spacing={2}>
+        {Object.keys(data.sales).length > 0 && (
+          <Grid container spacing={2} sx={{ my: 2 }}>
             <Grid item xs={12} sm={3}>
-              <Typography>Today's Sales: {data.todaySales}</Typography>
+                <Paper sx={{ p: 2 }}>
+                    <Typography variant="h6">Today's Sales</Typography>
+                    <Typography>{data.sales.today}</Typography>
+                </Paper>
             </Grid>
             <Grid item xs={12} sm={3}>
-              <Typography>Weekly Sales: {data.weeklySales}</Typography>
+                <Paper sx={{ p: 2 }}>
+                    <Typography variant="h6">This Week's Sales</Typography>
+                    <Typography>{data.sales.this_week}</Typography>
+                </Paper>
             </Grid>
             <Grid item xs={12} sm={3}>
-              <Typography>Monthly Sales: {data.monthlySales}</Typography>
+                <Paper sx={{ p: 2 }}>
+                    <Typography variant="h6">This Month's Sales</Typography>
+                    <Typography>{data.sales.this_month}</Typography>
+                </Paper>
             </Grid>
             <Grid item xs={12} sm={3}>
-              <Typography>Yearly Sales: {data.yearlySales}</Typography>
+                <Paper sx={{ p: 2 }}>
+                    <Typography variant="h6">This Year's Sales</Typography>
+                    <Typography>{data.sales.this_year}</Typography>
+                </Paper>
             </Grid>
           </Grid>
         )}

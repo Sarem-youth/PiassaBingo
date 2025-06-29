@@ -179,3 +179,33 @@ exports.rechargeBalance = async (req, res) => {
     res.status(500).send({ message: err.message });
   }
 };
+
+exports.getCreditsByUser = async (req, res) => {
+  const { userId } = req.params;
+  const { page = 0, limit = 10 } = req.query;
+  const offset = page * limit;
+
+  try {
+    const { data, error, count } = await supabase
+      .from('credits')
+      .select(`
+        id,
+        created_at,
+        amount,
+        type,
+        sender:sender_id ( username ),
+        receiver:receiver_id ( username )
+      `, { count: 'exact' })
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send({ credits: data, count });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};

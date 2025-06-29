@@ -27,11 +27,26 @@ const rechargeBalance = (data) => {
   return axios.post(`${API_URL}/recharge`, data, { headers: authHeader() });
 };
 
+const transferCredit = (senderId, receiverId, amount) => {
+    return axios.post(API_URL + '/transfer', { sender_id: senderId, receiver_id: receiverId, amount }, { headers: authHeader() });
+}
+
+const getAllCredits = (params) => {
+    return axios.get(API_URL, { headers: authHeader(), params });
+}
+
+const getCreditsByUser = (userId, params) => {
+    return axios.get(API_URL + `/user/${userId}`, { headers: authHeader(), params });
+}
+
 export default {
   sendCreditToAgent,
   getAgentCreditReport,
   sendCreditToShop,
   getShopCreditReport,
   getReceivedCreditReport,
-  rechargeBalance
+  rechargeBalance,
+  transferCredit,
+  getAllCredits,
+  getCreditsByUser
 };

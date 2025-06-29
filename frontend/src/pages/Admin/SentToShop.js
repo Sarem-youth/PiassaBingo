@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import creditService from '../../services/credit.service';
 import userService from '../../services/user.service';
+import authService from '../../services/auth.service';
 
 const SentToShop = () => {
   const [shops, setShops] = useState([]);
@@ -75,10 +76,23 @@ const SentToShop = () => {
   };
 
   const handleTransfer = () => {
-    creditService.sendCreditToShop({ amount: creditAmount, receiverPhone: receiverPhoneNumber }).then(() => {
-      loadReportData();
-      setCreditAmount('');
-      setReceiverPhoneNumber('');
+    const currentUser = authService.getCurrentUser();
+    userService.getUserByPhone(receiverPhoneNumber).then(response => {
+      const receiver = response.data;
+      if (receiver) {
+        creditService.sendCreditToShop({ 
+          sender_id: currentUser.id,
+          receiver_id: receiver.id,
+          amount: creditAmount,
+        }).then(() => {
+          loadReportData();
+          setCreditAmount('');
+          setReceiverPhoneNumber('');
+        });
+      } else {
+        // Handle user not found
+        console.error("User not found");
+      }
     });
   };
 

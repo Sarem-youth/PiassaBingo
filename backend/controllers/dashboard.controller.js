@@ -2,23 +2,40 @@ const supabase = require("../config/supabase.config.js");
 
 exports.getDashboardData = async (req, res) => {
   try {
-    const { data: sales, error: salesError } = await supabase
-      .from('sales_overview')
-      .select('*');
+    const { date, agent, shop } = req.query;
 
-    if (salesError) {
-      return res.status(400).send({ message: salesError.message });
+    let salesQuery = supabase.from('sales_overview').select('*');
+    let distributionQuery = supabase.from('sales_distribution').select('*');
+
+    if (date) {
+      salesQuery = salesQuery.eq('sale_date', date);
+      distributionQuery = distributionQuery.eq('sale_date', date);
     }
 
-    const { data: distribution, error: distributionError } = await supabase
-      .from('sales_distribution')
-      .select('*');
-
-    if (distributionError) {
-      return res.status(400).send({ message: distributionError.message });
+    if (agent) {
+      salesQuery = salesQuery.eq('agent_id', agent);
+      distributionQuery = distributionQuery.eq('agent_id', agent);
     }
 
-    res.status(200).send({ sales, distribution });
+    if (shop) {
+      salesQuery = salesQuery.eq('shop_id', shop);
+      distributionQuery = distributionQuery.eq('shop_id', shop);
+    }
+
+    const [salesResult, distributionResult] = await Promise.all([
+      salesQuery,
+      distributionQuery
+    ]);
+
+    if (salesResult.error) {
+      return res.status(400).send({ message: salesResult.error.message });
+    }
+
+    if (distributionResult.error) {
+      return res.status(400).send({ message: distributionResult.error.message });
+    }
+
+    res.status(200).send({ sales: salesResult.data, distribution: distributionResult.data });
   } catch (err) {
     res.status(500).send({ message: err.message });
   }

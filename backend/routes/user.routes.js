@@ -12,7 +12,10 @@ module.exports = function(app) {
 
   app.post("/api/users", [authJwt.verifyToken, authJwt.isAdmin], controller.createUser);
   app.get("/api/users", [authJwt.verifyToken, authJwt.isAdmin], controller.getAllUsers);
-  app.get("/api/users/:id", [authJwt.verifyToken, authJwt.isAdmin], controller.getUserById);
   app.put("/api/users/:id", [authJwt.verifyToken, authJwt.isAdmin], controller.updateUser);
+  app.put("/api/users/:id/password", [authJwt.verifyToken, authJwt.isAdmin], controller.updateUserPassword);
+  app.put("/api/users/:id/lock", [authJwt.verifyToken, authJwt.isAdmin], controller.lockUser);
+  app.get("/api/users/:id/credit-history", [authJwt.verifyToken, authJwt.isAdmin], controller.getUserCreditHistory);
   app.delete("/api/users/:id", [authJwt.verifyToken, authJwt.isAdmin], controller.deleteUser);
+  app.get("/api/users/phone/:phone", [authJwt.verifyToken, authJwt.isAdmin], controller.getUserByPhone);
 };

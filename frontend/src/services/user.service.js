@@ -19,9 +19,16 @@ const deleteUser = (id) => {
   return axios.delete(`${API_URL}/${id}`, { headers: authHeader() });
 };
 
-export default {
+const getUserByPhone = (phone) => {
+  return axios.get(API_URL + `/phone/${phone}`, { headers: authHeader() });
+};
+
+const userService = {
   getUsers,
   createUser,
   updateUser,
   deleteUser,
+  getUserByPhone,
 };
+
+export default userService;

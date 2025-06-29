@@ -144,3 +144,85 @@ exports.deleteUser = async (req, res) => {
     res.status(500).send({ message: err.message });
   }
 };
+
+// Get user by phone
+exports.getUserByPhone = async (req, res) => {
+  try {
+    const { phone } = req.params;
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('phone', phone)
+      .single();
+
+    if (error) {
+      return res.status(404).send({ message: "User not found." });
+    }
+
+    res.status(200).send(data);
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+exports.updateUserPassword = async (req, res) => {
+  const { id } = req.params;
+  const { password } = req.body;
+
+  try {
+    const { data, error } = await supabase.auth.admin.updateUserById(
+      id,
+      { password: password }
+    );
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send({ message: "User password updated successfully." });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+exports.lockUser = async (req, res) => {
+  const { id } = req.params;
+  const { locked } = req.body;
+
+  try {
+    const { data, error } = await supabase
+      .from("users")
+      .update({ locked: locked })
+      .eq("id", id);
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send({ message: `User ${locked ? 'locked' : 'unlocked'} successfully.` });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+exports.getUserCreditHistory = async (req, res) => {
+  const { id } = req.params;
+  const { page = 0, limit = 10 } = req.query;
+  const offset = page * limit;
+
+  try {
+    const { data, error, count } = await supabase
+      .from('credits')
+      .select('*', { count: 'exact' })
+      .or(`sender_id.eq.${id},receiver_id.eq.${id}`)
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send({ credits: data, count });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};

@@ -1,4 +1,5 @@
 const controller = require("../controllers/credit.controller.js");
+const authJwt = require("../middlewares/authJwt");
 
 module.exports = function(app) {
   app.use(function(req, res, next) {
@@ -19,4 +20,6 @@ module.exports = function(app) {
   app.post("/api/credits", controller.createCredit);
   app.get("/api/credits", controller.getAllCredits);
   app.get("/api/credits/:id", controller.getCreditById);
+  app.post("/api/credits/transfer", [authJwt.verifyToken, authJwt.isAdmin], controller.transferCredit);
+  app.get("/api/credits/user/:userId", [authJwt.verifyToken, authJwt.isAdmin], controller.getCreditsByUser);
 };

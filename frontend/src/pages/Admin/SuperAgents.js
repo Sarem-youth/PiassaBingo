@@ -1,36 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+import userService from "../../services/user.service";
+import creditService from "../../services/credit.service";
 import {
   Container,
   Paper,
-  Typography,
-  Button,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
-  Box,
+  Typography,
+  Button,
   TextField,
-  IconButton,
+  TablePagination,
   Dialog,
-  DialogActions,
+  DialogTitle,
   DialogContent,
-  DialogContentText,
-  DialogTitle
-} from '@mui/material';
-import { Edit, Delete, Lock, LockOpen } from '@mui/icons-material';
-import userService from '../../services/user.service';
+  DialogActions,
+} from "@mui/material";
 
 const SuperAgents = () => {
   const [agents, setAgents] = useState([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [count, setCount] = useState(0);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState(null);
+  const [openTransactions, setOpenTransactions] = useState(false);
+  const [selectedUserForTransactions, setSelectedUserForTransactions] = useState(null);
 
   useEffect(() => {
     loadAgents();
@@ -41,7 +40,7 @@ const SuperAgents = () => {
       page,
       limit: rowsPerPage,
       search,
-      roles: ['super agent'],
+      roles: ["super agent"],
     };
     userService.getUsers(params).then((response) => {
       setAgents(response.data.users);
@@ -73,15 +72,25 @@ const SuperAgents = () => {
   };
 
   const handleLock = (id) => {
-    userService.updateUser(id, { status: 'locked' }).then(() => {
+    userService.updateUser(id, { status: "locked" }).then(() => {
       loadAgents();
     });
   };
 
   const handleUnlock = (id) => {
-    userService.updateUser(id, { status: 'active' }).then(() => {
+    userService.updateUser(id, { status: "active" }).then(() => {
       loadAgents();
     });
+  };
+
+  const handleViewTransactions = (agent) => {
+    setSelectedUserForTransactions(agent);
+    setOpenTransactions(true);
+  };
+
+  const handleCloseTransactions = () => {
+    setOpenTransactions(false);
+    setSelectedUserForTransactions(null);
   };
 
   return (
@@ -95,44 +104,38 @@ const SuperAgents = () => {
           fullWidth
           margin="normal"
         />
-        <Button variant="contained" onClick={() => handleClickOpen(null)}>+ Add New Agent</Button>
+        <Button variant="contained" onClick={() => handleClickOpen(null)}>
+          + Add New Agent
+        </Button>
 
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Name</TableCell>
                 <TableCell>Username</TableCell>
                 <TableCell>Balance</TableCell>
-                <TableCell>%</TableCell>
-                <TableCell>Phone</TableCell>
+                <TableCell>Commission %</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Change</TableCell>
-                <TableCell>Lock</TableCell>
-                <TableCell>View</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {agents.map((agent) => (
                 <TableRow key={agent.id}>
-                  <TableCell>{agent.name}</TableCell>
                   <TableCell>{agent.username}</TableCell>
                   <TableCell>{agent.balance}</TableCell>
-                  <TableCell>{agent.commission}</TableCell>
-                  <TableCell>{agent.phone}</TableCell>
+                  <TableCell>{agent.commission_rate}</TableCell>
                   <TableCell>{agent.status}</TableCell>
                   <TableCell>
                     <Button onClick={() => handleClickOpen(agent)}>Change</Button>
-                  </TableCell>
-                  <TableCell>
-                    {agent.status === 'locked' ? (
-                      <Button onClick={() => handleUnlock(agent.id)}>Unlock</Button>
+                    {agent.status === "locked" ? (
+                      <Button onClick={() => handleUnlock(agent.id)}>
+                        Unlock
+                      </Button>
                     ) : (
                       <Button onClick={() => handleLock(agent.id)}>Lock</Button>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <Button>View</Button>
+                    <Button onClick={() => handleViewTransactions(agent)}>View</Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -148,7 +151,19 @@ const SuperAgents = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Paper>
-      <AgentDialog open={open} onClose={handleClose} agent={selectedAgent} refresh={loadAgents} />
+      <AgentDialog
+        open={open}
+        onClose={handleClose}
+        agent={selectedAgent}
+        refresh={loadAgents}
+      />
+      {selectedUserForTransactions && (
+        <TransactionHistoryDialog
+          open={openTransactions}
+          onClose={handleCloseTransactions}
+          user={selectedUserForTransactions}
+        />
+      )}
     </Container>
   );
 };
@@ -160,7 +175,7 @@ const AgentDialog = ({ open, onClose, agent, refresh }) => {
     if (agent) {
       setFormData(agent);
     } else {
-      setFormData({});
+      setFormData({ role: 'super agent'});
     }
   }, [agent]);
 
@@ -184,12 +199,42 @@ const AgentDialog = ({ open, onClose, agent, refresh }) => {
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogTitle>{agent ? 'Edit Agent' : 'Add Agent'}</DialogTitle>
+      <DialogTitle>{agent ? "Edit Agent" : "Add Agent"}</DialogTitle>
       <DialogContent>
-        <TextField name="name" label="Name" value={formData.name || ''} onChange={handleChange} fullWidth margin="normal" />
-        <TextField name="username" label="Username" value={formData.username || ''} onChange={handleChange} fullWidth margin="normal" />
-        <TextField name="phone" label="Phone" value={formData.phone || ''} onChange={handleChange} fullWidth margin="normal" />
-        <TextField name="commission" label="Commission" value={formData.commission || ''} onChange={handleChange} fullWidth margin="normal" />
+        <TextField
+          name="username"
+          label="Username"
+          value={formData.username || ""}
+          onChange={handleChange}
+          fullWidth
+          margin="normal"
+        />
+        <TextField
+          name="email"
+          label="Email"
+          value={formData.email || ""}
+          onChange={handleChange}
+          fullWidth
+          margin="normal"
+        />
+        <TextField
+          name="password"
+          label="Password"
+          type="password"
+          onChange={handleChange}
+          fullWidth
+          margin="normal"
+          helperText={agent ? "Leave blank to keep current password" : ""}
+        />
+        <TextField
+          name="commission_rate"
+          label="Commission Rate"
+          type="number"
+          value={formData.commission_rate || ""}
+          onChange={handleChange}
+          fullWidth
+          margin="normal"
+        />
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
@@ -198,5 +243,77 @@ const AgentDialog = ({ open, onClose, agent, refresh }) => {
     </Dialog>
   );
 };
+
+const TransactionHistoryDialog = ({ open, onClose, user }) => {
+  const [credits, setCredits] = useState([]);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      loadCredits();
+    }
+  }, [user, page, rowsPerPage]);
+
+  const loadCredits = () => {
+    creditService.getCreditsByUser(user.id, { page, limit: rowsPerPage }).then(response => {
+      setCredits(response.data.credits);
+      setCount(response.data.count);
+    });
+  };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>Transaction History for {user.username}</DialogTitle>
+      <DialogContent>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Date</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Amount</TableCell>
+                <TableCell>Sender</TableCell>
+                <TableCell>Receiver</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {credits.map(credit => (
+                <TableRow key={credit.id}>
+                  <TableCell>{new Date(credit.created_at).toLocaleString()}</TableCell>
+                  <TableCell>{credit.type}</TableCell>
+                  <TableCell>{credit.amount}</TableCell>
+                  <TableCell>{credit.sender.username}</TableCell>
+                  <TableCell>{credit.receiver.username}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          component="div"
+          count={count}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
 
 export default SuperAgents;
