@@ -3,47 +3,64 @@ module.exports = {
   table: 'users',
   columns: {
     id: {
-      type: 'INTEGER',
+      type: 'UUID',
       primaryKey: true,
-      autoIncrement: true,
-    },
-    name: {
-      type: 'STRING',
     },
     username: {
       type: 'STRING',
       unique: true,
       allowNull: false,
     },
-    password: {
+    email: {
       type: 'STRING',
+      unique: true,
       allowNull: false,
     },
-    balance: {
-      type: 'DECIMAL',
-      defaultValue: 0,
+    password_hash: {
+      type: 'STRING',
+      allowNull: true,
     },
-    cut: {
-      type: 'FLOAT',
-    },
-    commission: {
-      type: 'FLOAT',
+    name: {
+      type: 'STRING',
+      allowNull: true,
     },
     phone: {
       type: 'STRING',
-      unique: true,
+      allowNull: true,
+    },
+    role: {
+      type: 'ENUM',
+      values: ['admin', 'agent', 'shop', 'cashier'],
+      defaultValue: 'cashier',
     },
     status: {
       type: 'ENUM',
       values: ['active', 'locked'],
       defaultValue: 'active',
     },
-    agentId: {
-      type: 'INTEGER',
+    balance: {
+      type: 'DECIMAL',
+      defaultValue: 0,
+    },
+    commission_rate: {
+      type: 'DECIMAL',
+      defaultValue: 0,
+    },
+    parent_id: {
+      type: 'UUID',
       references: {
         table: 'users',
         column: 'id',
       },
+      allowNull: true,
+    },
+    created_at: {
+      type: 'DATE',
+      defaultValue: Date.now,
+    },
+    updated_at: {
+      type: 'DATE',
+      defaultValue: Date.now,
     },
   },
 };

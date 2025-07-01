@@ -105,6 +105,29 @@ const SentToShop = () => {
     setPage(0);
   };
 
+  const handleExport = () => {
+    const params = {
+      fromDate,
+      toDate,
+      shops: selectedShops.join(','),
+      export: true
+    };
+    creditService.getShopCreditReport(params).then((response) => {
+      const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `shop-credit-report-${fromDate}-${toDate}.json`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    });
+  };
+
+  const handleSubmit = () => {
+    setPage(0);
+    loadReportData();
+  };
+
   return (
     <Container>
       <Paper sx={{ p: 2, my: 2 }}>
@@ -128,8 +151,8 @@ const SentToShop = () => {
 
       <Paper sx={{ p: 2, my: 2 }}>
         <Typography variant="h6">Shop Credit Report</Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid item xs={12} sm={3}>
             <TextField
               label="From Date"
               type="date"
@@ -141,7 +164,7 @@ const SentToShop = () => {
               fullWidth
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={3}>
             <TextField
               label="To Date"
               type="date"
@@ -153,6 +176,19 @@ const SentToShop = () => {
               fullWidth
             />
           </Grid>
+          <Grid item xs={12} sm={2}>
+            <Button variant="outlined" onClick={handleExport} fullWidth>
+              Export
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={2}>
+            <Button variant="contained" onClick={handleSubmit} fullWidth>
+              Submit
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={2}></Grid>
+        </Grid>
+        <Grid container spacing={2} sx={{ mb: 2 }}>
           <Grid item xs={12}>
             <FormControl fullWidth>
               <InputLabel>Select Shops</InputLabel>

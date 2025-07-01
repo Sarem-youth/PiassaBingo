@@ -1,53 +1,75 @@
 const supabase = require("../config/supabase.config.js");
+const jwt = require("jsonwebtoken");
+const config = require("../config/auth.config.js");
+const bcrypt = require('bcryptjs');
 
 exports.signin = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // Supabase uses email to sign in, so we'll use the provided username as the email.
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: username,
-      password: password,
-    });
+    console.log('Signin attempt for username:', username);
+    
+    const { data: userDetails, error: userError } = await supabase
+      .from('users')
+      .select('id, username, role, password_hash') // Include password hash
+      .eq('username', username)
+      .single();
 
-    if (error) {
-      return res.status(401).send({ message: error.message });
+    console.log('User query result:', { userDetails, userError });
+
+    if (userError || !userDetails) {
+      console.log('User not found or error occurred');
+      return res.status(401).send({ message: "Invalid username or password." });
     }
 
-    if (data && data.user) {
-      // Fetch user details from the public.users table to get the role
-      const { data: userDetails, error: userError } = await supabase
-        .from('users')
-        .select('id, username, role')
-        .eq('id', data.user.id)
-        .single();
+    const passwordIsValid = await bcrypt.compare(
+      password,
+      userDetails.password_hash
+    );
 
-      if (userError) {
-        return res.status(500).send({ message: "Error fetching user details: " + userError.message });
-      }
+    console.log('Password comparison result:', passwordIsValid);
 
-      res.status(200).send({
+    if (!passwordIsValid) {
+      console.log('Password validation failed');
+      return res.status(401).send({
+        accessToken: null,
+        message: "Invalid Password!"
+      });
+    }
+
+    const token = jwt.sign(
+      { 
         id: userDetails.id,
         username: userDetails.username,
-        role: userDetails.role,
-        accessToken: data.session.access_token,
-      });
-    } else {
-        return res.status(404).send({ message: "User not found." });
-    }
+        role: userDetails.role 
+      },
+      config.secret,
+      { expiresIn: 86400 } // 24 hours
+    );
+
+    res.status(200).send({
+      id: userDetails.id,
+      username: userDetails.username,
+      role: userDetails.role,
+      accessToken: token,
+    });
+
   } catch (err) {
     res.status(500).send({ message: err.message });
   }
 };
 
 exports.signup = async (req, res) => {
-  const { username, email, password, roles } = req.body;
+  const { username, email, password, roles, name, phone } = req.body;
 
   try {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     // Create a new user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email,
-      password: password,
+      password: password, // Supabase still needs a password
       options: {
         data: {
           username: username,
@@ -60,19 +82,23 @@ exports.signup = async (req, res) => {
     }
 
     if (authData.user) {
-      // Add user to the public.users table
+      // Add user to the public.users table with hashed password
       const { error: userError } = await supabase
         .from('users')
         .insert([
-          { id: authData.user.id, username: username, email: email, role: roles && roles.length > 0 ? roles[0] : 'user' },
+          { 
+            id: authData.user.id, 
+            username: username, 
+            email: email, 
+            role: roles && roles.length > 0 ? roles[0] : 'user',
+            password_hash: hashedPassword, // Store the hashed password
+            name: name,
+            phone: phone
+          },
         ]);
 
       if (userError) {
-        // If inserting into public.users fails, you might want to delete the user from auth.users to keep things consistent.
-        // This part is complex and depends on your desired error handling strategy.
-        // For now, we'll just log the error.
         console.error("Error adding user to public.users:", userError.message);
-        // Optionally, you could try to delete the user from Supabase auth here
         return res.status(500).send({ message: "Failed to create user profile." });
       }
 

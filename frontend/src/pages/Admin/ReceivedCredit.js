@@ -51,12 +51,35 @@ const ReceivedCredit = () => {
     setPage(0);
   };
 
+  const handleExport = () => {
+    const params = {
+      fromDate,
+      toDate,
+      export: true
+    };
+    creditService.getReceivedCreditReport(params).then((response) => {
+      // Create a download link for the exported data
+      const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `received-credit-report-${fromDate}-${toDate}.json`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    });
+  };
+
+  const handleSubmit = () => {
+    setPage(0);
+    loadReportData();
+  };
+
   return (
     <Container>
       <Paper sx={{ p: 2, my: 2 }}>
         <Typography variant="h6">Received Credit Report</Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
+        <Grid container spacing={2} sx={{ my: 2 }}>
+          <Grid item xs={12} sm={4}>
             <TextField
               label="From Date"
               type="date"
@@ -68,7 +91,7 @@ const ReceivedCredit = () => {
               fullWidth
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={4}>
             <TextField
               label="To Date"
               type="date"
@@ -79,6 +102,16 @@ const ReceivedCredit = () => {
               }}
               fullWidth
             />
+          </Grid>
+          <Grid item xs={12} sm={2}>
+            <Button variant="outlined" onClick={handleExport} fullWidth>
+              Export
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={2}>
+            <Button variant="contained" onClick={handleSubmit} fullWidth>
+              Submit
+            </Button>
           </Grid>
         </Grid>
 

@@ -30,3 +30,6 @@ pids
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Seed data (optional - remove this line if you want to track seed files)
+# backend/seeders/

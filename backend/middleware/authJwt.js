@@ -1,7 +1,6 @@
 const jwt = require("jsonwebtoken");
 const config = require("../config/auth.config.js");
-const db = require("../models");
-const User = db.user;
+const supabase = require("../config/supabase.config.js");
 
 verifyToken = (req, res, next) => {
   let token = req.headers["x-access-token"];
@@ -19,59 +18,41 @@ verifyToken = (req, res, next) => {
       });
     }
     req.userId = decoded.id;
+    req.userRole = decoded.role;
     next();
   });
 };
 
 isAdmin = (req, res, next) => {
-  User.findByPk(req.userId).then(user => {
-    user.getRoles().then(roles => {
-      for (let i = 0; i < roles.length; i++) {
-        if (roles[i].name === "admin") {
-          next();
-          return;
-        }
-      }
+  if (req.userRole === "admin") {
+    next();
+    return;
+  }
 
-      res.status(403).send({
-        message: "Require Admin Role!"
-      });
-      return;
-    });
+  res.status(403).send({
+    message: "Require Admin Role!"
   });
 };
 
 isSuperAgent = (req, res, next) => {
-  User.findByPk(req.userId).then(user => {
-    user.getRoles().then(roles => {
-      for (let i = 0; i < roles.length; i++) {
-        if (roles[i].name === "superagent") {
-          next();
-          return;
-        }
-      }
+  if (req.userRole === "agent") {
+    next();
+    return;
+  }
 
-      res.status(403).send({
-        message: "Require Super Agent Role!"
-      });
-    });
+  res.status(403).send({
+    message: "Require Agent Role!"
   });
 };
 
 isShop = (req, res, next) => {
-  User.findByPk(req.userId).then(user => {
-    user.getRoles().then(roles => {
-      for (let i = 0; i < roles.length; i++) {
-        if (roles[i].name === "shop") {
-          next();
-          return;
-        }
-      }
+  if (req.userRole === "shop") {
+    next();
+    return;
+  }
 
-      res.status(403).send({
-        message: "Require Shop Role!"
-      });
-    });
+  res.status(403).send({
+    message: "Require Shop Role!"
   });
 };
 

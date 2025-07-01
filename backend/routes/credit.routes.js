@@ -1,5 +1,5 @@
 const controller = require("../controllers/credit.controller.js");
-const authJwt = require("../middlewares/authJwt");
+const { authJwt } = require("../middleware/index.js");
 
 module.exports = function(app) {
   app.use(function(req, res, next) {

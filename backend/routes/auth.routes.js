@@ -1,5 +1,5 @@
 const controller = require("../controllers/auth.controller");
-const { verifySignUp } = require("../middleware");
+const { verifySignUp, authJwt } = require("../middleware/index.js");
 
 module.exports = function(app) {
   app.use(function(req, res, next) {
@@ -12,10 +12,7 @@ module.exports = function(app) {
 
   app.post(
     "/api/auth/signup",
-    [
-      verifySignUp.checkDuplicateUsernameOrEmail,
-      verifySignUp.checkRolesExisted
-    ],
+    [authJwt.verifyToken, verifySignUp.checkDuplicateUsernameOrEmail, verifySignUp.checkRolesExisted],
     controller.signup
   );
 

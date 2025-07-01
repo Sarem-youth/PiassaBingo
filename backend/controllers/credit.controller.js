@@ -180,6 +180,7 @@ exports.rechargeBalance = async (req, res) => {
   }
 };
 
+// Get credits by user
 exports.getCreditsByUser = async (req, res) => {
   const { userId } = req.params;
   const { page = 0, limit = 10 } = req.query;
@@ -205,6 +206,109 @@ exports.getCreditsByUser = async (req, res) => {
     }
 
     res.status(200).send({ credits: data, count });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// Create a new credit record
+exports.createCredit = async (req, res) => {
+  const { sender_id, receiver_id, amount, type } = req.body;
+
+  try {
+    const { data, error } = await supabase
+      .from('credits')
+      .insert([{
+        sender_id,
+        receiver_id,
+        amount,
+        type
+      }])
+      .select();
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(201).send({ message: "Credit created successfully.", credit: data[0] });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// Get all credits with pagination
+exports.getAllCredits = async (req, res) => {
+  const { page = 0, limit = 10, search = '' } = req.query;
+  const offset = page * limit;
+
+  try {
+    let query = supabase
+      .from("credits")
+      .select(`
+        *,
+        sender:sender_id ( username ),
+        receiver:receiver_id ( username )
+      `, { count: "exact" })
+      .order('created_at', { ascending: false });
+
+    if (search) {
+      query = query.or(`sender.username.ilike.%${search}%,receiver.username.ilike.%${search}%`);
+    }
+
+    const { data, error, count } = await query.range(offset, offset + limit - 1);
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send({ credits: data, count });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// Get credit by ID
+exports.getCreditById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { data, error } = await supabase
+      .from('credits')
+      .select(`
+        *,
+        sender:sender_id ( username ),
+        receiver:receiver_id ( username )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      return res.status(404).send({ message: "Credit not found." });
+    }
+
+    res.status(200).send({ credit: data });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// Transfer credit using the stored procedure
+exports.transferCredit = async (req, res) => {
+  const { sender_id, receiver_id, amount, type } = req.body;
+
+  try {
+    const { error } = await supabase.rpc('transfer_credit', {
+      sender_id_in: sender_id,
+      receiver_id_in: receiver_id,
+      amount_in: amount,
+      type_in: type
+    });
+
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    res.status(200).send({ message: "Credit transferred successfully." });
   } catch (err) {
     res.status(500).send({ message: err.message });
   }

@@ -2,7 +2,7 @@ const supabase = require("../config/supabase.config.js");
 
 // Create a new user
 exports.createUser = async (req, res) => {
-  const { username, email, password, role, commission_rate } = req.body;
+  const { username, email, password, role, commission_rate, name, phone } = req.body;
 
   try {
     // Create a new user in Supabase Auth
@@ -25,7 +25,15 @@ exports.createUser = async (req, res) => {
       const { error: userError } = await supabase
         .from('users')
         .insert([
-          { id: authData.user.id, username: username, email: email, role: role, commission_rate: commission_rate },
+          { 
+            id: authData.user.id, 
+            username: username, 
+            email: email, 
+            role: role, 
+            commission_rate: commission_rate,
+            name: name,
+            phone: phone
+          },
         ]);
 
       if (userError) {
@@ -102,7 +110,7 @@ exports.getUserById = async (req, res) => {
 // Update user
 exports.updateUser = async (req, res) => {
   const { id } = req.params;
-  const { username, email, role, status, balance, commission_rate } = req.body;
+  const { username, email, role, status, balance, commission_rate, name, phone } = req.body;
 
   const updateData = {};
   if (username) updateData.username = username;
@@ -111,6 +119,8 @@ exports.updateUser = async (req, res) => {
   if (status) updateData.status = status;
   if (balance !== undefined) updateData.balance = balance;
   if (commission_rate !== undefined) updateData.commission_rate = commission_rate;
+  if (name) updateData.name = name;
+  if (phone) updateData.phone = phone;
 
   try {
     const { data, error } = await supabase
@@ -170,6 +180,12 @@ exports.updateUserPassword = async (req, res) => {
   const { password } = req.body;
 
   try {
+    // Hash the new password
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Update password in Supabase Auth
     const { data, error } = await supabase.auth.admin.updateUserById(
       id,
       { password: password }
@@ -177,6 +193,16 @@ exports.updateUserPassword = async (req, res) => {
 
     if (error) {
       return res.status(400).send({ message: error.message });
+    }
+
+    // Also update the password hash in the public users table
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ password_hash: hashedPassword })
+      .eq('id', id);
+
+    if (updateError) {
+      return res.status(500).send({ message: "Failed to update password hash: " + updateError.message });
     }
 
     res.status(200).send({ message: "User password updated successfully." });

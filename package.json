@@ -1,6 +1,7 @@
 {
   "dependencies": {
-    "@supabase/supabase-js": "^2.50.2"
+    "@supabase/supabase-js": "^2.50.2",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "sequelize-cli": "^6.6.3"
